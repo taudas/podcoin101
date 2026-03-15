@@ -34,10 +34,15 @@ export default function TransferPage() {
     const timer = setTimeout(async () => {
       if (!session?.user) return
       setSearching(true)
-      const res = await fetch(`/api/users?search=${encodeURIComponent(search)}`)
-      const data = await res.json()
-      setUsers((data.users ?? []).filter((u: User) => u.id !== session.user?.id))
-      setSearching(false)
+      try {
+        const res = await fetch(`/api/users?search=${encodeURIComponent(search)}`)
+        const data = await res.json()
+        setUsers((data.users ?? []).filter((u: User) => u.id !== session.user?.id))
+      } catch (err) {
+        console.error("User search failed:", err)
+      } finally {
+        setSearching(false)
+      }
     }, 300)
     return () => clearTimeout(timer)
   }, [search, session])

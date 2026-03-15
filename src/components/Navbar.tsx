@@ -16,7 +16,7 @@ export default function Navbar() {
         .then((d) => {
           if (typeof d.balance === "number") setBalance(d.balance)
         })
-        .catch(() => {})
+        .catch((err) => console.error("Failed to fetch balance:", err))
     }
   }, [session])
 

@@ -57,7 +57,7 @@ export default function DashboardPage() {
   if (!session?.user || !balanceData) return null
 
   const balance = balanceData.balance
-  const pct = ((balance + balanceData.credit_limit) / balanceData.credit_limit) * 100
+  const pct = ((balance + balanceData.credit_limit) / (2 * balanceData.credit_limit)) * 100
   const balanceColor =
     balance >= 0
       ? "text-green-700"

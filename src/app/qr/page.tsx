@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import QRCode from "react-qr-code"
+import jsQR from "jsqr"
 
 type Tab = "show" | "scan"
 
@@ -84,25 +85,22 @@ export default function QRPage() {
     if (!ctx) return
     ctx.drawImage(video, 0, 0)
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-
-    import("jsqr").then(({ default: jsQR }) => {
-      const code = jsQR(imageData.data, imageData.width, imageData.height)
-      if (code) {
-        stopScan()
-        try {
-          const parsed = JSON.parse(code.data) as ScanResult
-          if (!parsed.toUserId || typeof parsed.amount !== "number") {
-            setScanError("Invalid QR code — not a Podcoin payment.")
-            return
-          }
-          setScanned(parsed)
-        } catch {
-          setScanError("Could not parse QR code.")
+    const code = jsQR(imageData.data, imageData.width, imageData.height)
+    if (code) {
+      stopScan()
+      try {
+        const parsed = JSON.parse(code.data) as ScanResult
+        if (!parsed.toUserId || typeof parsed.amount !== "number") {
+          setScanError("Invalid QR code — not a Podcoin payment.")
+          return
         }
-      } else {
-        rafRef.current = requestAnimationFrame(scanFrame)
+        setScanned(parsed)
+      } catch {
+        setScanError("Could not parse QR code.")
       }
-    })
+    } else {
+      rafRef.current = requestAnimationFrame(scanFrame)
+    }
   }
 
   useEffect(() => {

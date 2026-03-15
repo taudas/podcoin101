@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
   if (!body.title || typeof body.title !== "string") {
     return NextResponse.json({ error: "title is required" }, { status: 400 })
   }
-  if (typeof body.price_podcoin !== "number" || body.price_podcoin < 0) {
-    return NextResponse.json({ error: "price_podcoin must be a non-negative number" }, { status: 400 })
+  if (typeof body.price_podcoin !== "number" || body.price_podcoin <= 0) {
+    return NextResponse.json({ error: "price_podcoin must be a positive number" }, { status: 400 })
   }
 
   const service = addService(session.user.id, {
