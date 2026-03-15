@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "npx @opennextjs/cloudflare build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "npm run build && npx wrangler deploy"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
