@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npx @opennextjs/cloudflare build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -27,6 +27,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
+    "@opennextjs/cloudflare": "^1",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"

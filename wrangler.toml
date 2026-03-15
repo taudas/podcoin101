@@ -1,7 +1,6 @@
 name = "podcoin101"
+main = ".open-next/worker.js"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
-[[services]]
-binding = "WORKER_SELF_REFERENCE"
-service = "podcoin101"
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
