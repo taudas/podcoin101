@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx @opennextjs/cloudflare build",
+    "build": "next build",
+    "build:worker": "npx @opennextjs/cloudflare build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "npm run build && npx wrangler deploy"
+    "deploy": "npm run build:worker && npx wrangler deploy"
   },
   "dependencies": {
     "@types/better-sqlite3": "^7.6.13",
