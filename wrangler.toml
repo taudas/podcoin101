@@ -7,3 +7,7 @@ assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 [build]
 command = "npm run build:worker"
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
