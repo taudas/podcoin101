@@ -16,7 +16,7 @@ Podcoin Exchange is a non-crypto, community digital currency system for Alameda,
 
 | Feature | Description |
 |---|---|
-| 🔐 **OAuth Login** | Sign in with GitHub or Google — no passwords to manage |
+| 🔐 **OAuth Login** | Sign in with Google — no passwords to manage |
 | 💰 **Mutual Credit Wallet** | Zero-balance start, ₱500 credit limit, real-time balance display |
 | 💸 **P2P Transfers** | Send Podcoin to any community member instantly |
 | 📱 **QR Payments** | Generate your personal QR code to receive; scan to pay |
@@ -27,7 +27,7 @@ Podcoin Exchange is a non-crypto, community digital currency system for Alameda,
 ## Tech Stack
 
 - **[Next.js 15](https://nextjs.org/)** (App Router) — deployable to Cloudflare Pages
-- **[NextAuth.js v5](https://authjs.dev/)** — OAuth via GitHub and Google
+- **[NextAuth.js v5](https://authjs.dev/)** — OAuth via Google
 - **[better-sqlite3](https://github.com/WiseLibs/better-sqlite3)** — SQLite ledger database
 - **[react-qr-code](https://github.com/rosskhanas/react-qr-code)** + **[jsqr](https://github.com/cozmo/jsQR)** — QR generation & camera scanning
 - **[Tailwind CSS](https://tailwindcss.com/)** — utility-first styling
@@ -50,18 +50,17 @@ Copy `.env.example` to `.env.local` and fill in your OAuth credentials:
 cp .env.example .env.local
 ```
 
+Then edit `.env.local`:
+
 ```env
-GITHUB_ID=your_github_oauth_app_id
-GITHUB_SECRET=your_github_oauth_app_secret
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
 NEXTAUTH_URL=http://localhost:3000
 ```
 
-**Creating OAuth Apps:**
-- **GitHub**: Settings → Developer settings → OAuth Apps → New. Set callback URL to `http://localhost:3000/api/auth/callback/github`
-- **Google**: [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials → OAuth 2.0. Set callback URL to `http://localhost:3000/api/auth/callback/google`
+**Creating a Google OAuth App:**
+[console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials → OAuth 2.0. Set the callback URL to `http://localhost:3000/api/auth/callback/google`.
 
 Generate a secret: `openssl rand -base64 32`
 
@@ -95,9 +94,27 @@ SQLite database (`podcoin.db`) is created automatically on first run in the proj
 - Transfers are atomic — both balances update in a single SQLite transaction
 - No fees, no interest, no blockchain
 
-## Deployment (Cloudflare Pages)
+## Deployment (Cloudflare Pages — Git Integration)
 
-This app uses Next.js App Router and can be deployed to Cloudflare Pages using [`@cloudflare/next-on-pages`](https://github.com/cloudflare/next-on-pages). For production, replace `better-sqlite3` with [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-compatible) by updating `src/lib/db.ts`.
+The app auto-deploys to Cloudflare Pages from GitHub on every push to `main`. The build command (`npm run build:worker`) runs in the Cloudflare Pages pipeline.
+
+### Required: Set Environment Variables in Cloudflare Dashboard
+
+Cloudflare Pages does **not** read `wrangler.toml` `[vars]` at runtime. Environment variables **must** be configured in the Cloudflare Dashboard:
+
+1. Go to **Cloudflare Dashboard → Pages → podcoin101 → Settings → Environment variables**
+2. Add the following **Production** variables:
+   - `GOOGLE_CLIENT_ID` — Your Google OAuth client ID
+   - `GOOGLE_CLIENT_SECRET` — Your Google OAuth client secret
+   - `NEXTAUTH_SECRET` — NextAuth secret
+   - `NEXTAUTH_URL` — Your production URL (e.g., `https://podcoin101.taudas6709.workers.dev`)
+   - `AUTH_TRUST_HOST` — `true`
+3. Also add the production callback URL to your **Google Cloud Console** → OAuth 2.0 credentials:
+   `https://podcoin101.taudas6709.workers.dev/api/auth/callback/google`
+
+### Database Note
+
+For production, replace `better-sqlite3` with [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-compatible) by updating `src/lib/db.ts`.
 
 ## License
 

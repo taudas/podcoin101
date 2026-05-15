@@ -40,16 +40,33 @@ npm run dev
 
 **QR flow:** `/qr` generates a user's receive code; scanning triggers a POST to `/api/qr` which executes a transfer.
 
-## Deployment
+## Deployment (Cloudflare Pages — Git Integration)
 
-The app deploys to Cloudflare Workers. Key config:
+The app deploys to **Cloudflare Pages** via GitHub integration (push to `main` triggers auto-deploy).
+
+Key config:
 - `wrangler.toml` — sets `AUTH_TRUST_HOST=true` (required for NextAuth behind Cloudflare)
 - `open-next.config.ts` — OpenNext adapter config
-- Always run `npm run build:worker` (not `npm run build`) before `wrangler deploy`
+- Always run `npm run build:worker` (not `npm run build`) locally to test the worker build
 
-## Environment Variables
+### Cloudflare Pages Dashboard — Required Environment Variables
+
+`wrangler.toml` `[vars]` are **not** used by Cloudflare Pages git deployments. You must set these in the Cloudflare Dashboard:
+
+1. Go to **Cloudflare Dashboard → Pages → podcoin101 → Settings → Environment variables**
+2. Add the following **Production** variables:
+   - `GOOGLE_CLIENT_ID` — Your Google OAuth client ID
+   - `GOOGLE_CLIENT_SECRET` — Your Google OAuth client secret
+   - `NEXTAUTH_SECRET` — NextAuth secret
+   - `NEXTAUTH_URL` — `https://podcoin101.taudas6709.workers.dev` (or your custom domain)
+   - `AUTH_TRUST_HOST` — `true`
+3. Also update your **Google Cloud Console** → OAuth consent screen → Authorized redirect URIs to include:
+   `https://podcoin101.taudas6709.workers.dev/api/auth/callback/google`
+
+## Environment Variables (Local Development)
 
 Required in `.env.local`:
-- `AUTH_SECRET` — NextAuth secret
-- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth credentials
-- `NEXTAUTH_URL` — App URL (e.g., `http://localhost:3000`)
+- `GOOGLE_CLIENT_ID` — Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` — Google OAuth client secret
+- `NEXTAUTH_SECRET` — NextAuth secret (generate with `openssl rand -base64 32`)
+- `NEXTAUTH_URL` — `http://localhost:3000`

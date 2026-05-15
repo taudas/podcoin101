@@ -41,4 +41,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 podcoin.db
+podcoin.db-shm
+podcoin.db-wal
+.open-next/
 /.vs/slnx.sqlite

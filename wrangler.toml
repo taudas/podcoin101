@@ -6,6 +6,8 @@ compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 [vars]
+# Local `wrangler dev` only — Cloudflare Pages git deployments do NOT use [vars].
+# Set these in Cloudflare Dashboard → Pages → Settings → Environment variables.
 AUTH_TRUST_HOST = "true"
 
 [build]
