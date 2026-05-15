@@ -11,9 +11,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (!user.id || !user.email) return false
+      if (!user.email || !account?.providerAccountId) return false
       await getOrCreateUser({
-        id: user.id,
+        id: account.providerAccountId,
         name: user.name ?? user.email,
         email: user.email,
         image: user.image ?? null,
@@ -26,8 +26,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return session
     },
-    async jwt({ token, user }) {
-      if (user) {
+    async jwt({ token, user, account }) {
+      if (account?.providerAccountId) {
+        token.sub = account.providerAccountId
+      } else if (user) {
         token.sub = user.id
       }
       return token
