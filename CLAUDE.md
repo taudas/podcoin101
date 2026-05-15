@@ -58,10 +58,10 @@ Key config:
    - `GOOGLE_CLIENT_ID` — Your Google OAuth client ID
    - `GOOGLE_CLIENT_SECRET` — Your Google OAuth client secret
    - `NEXTAUTH_SECRET` — NextAuth secret
-   - `NEXTAUTH_URL` — `https://podcoin101.taudas6709.workers.dev` (or your custom domain)
+   - `NEXTAUTH_URL` — `https://demo.podcoin.org`
    - `AUTH_TRUST_HOST` — `true`
 3. Also update your **Google Cloud Console** → OAuth consent screen → Authorized redirect URIs to include:
-   `https://podcoin101.taudas6709.workers.dev/api/auth/callback/google`
+   `https://demo.podcoin.org/api/auth/callback/google`
 
 ## Environment Variables (Local Development)
 

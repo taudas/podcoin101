@@ -107,10 +107,10 @@ Cloudflare Pages does **not** read `wrangler.toml` `[vars]` at runtime. Environm
    - `GOOGLE_CLIENT_ID` — Your Google OAuth client ID
    - `GOOGLE_CLIENT_SECRET` — Your Google OAuth client secret
    - `NEXTAUTH_SECRET` — NextAuth secret
-   - `NEXTAUTH_URL` — Your production URL (e.g., `https://podcoin101.taudas6709.workers.dev`)
+   - `NEXTAUTH_URL` — `https://demo.podcoin.org`
    - `AUTH_TRUST_HOST` — `true`
 3. Also add the production callback URL to your **Google Cloud Console** → OAuth 2.0 credentials:
-   `https://podcoin101.taudas6709.workers.dev/api/auth/callback/google`
+   `https://demo.podcoin.org/api/auth/callback/google`
 
 ### Database Note
 
