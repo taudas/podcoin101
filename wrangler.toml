@@ -1,9 +1,17 @@
 name = "podcoin101"
 main = ".open-next/worker.js"
-compatibility_date = "2024-12-30"
+compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
+
+# D1 Database (serverless SQLite)
+# Create: npx wrangler d1 create podcoin-db
+# Then replace the database_id below with the one from the output
+[[d1_databases]]
+binding = "DB"
+database_name = "podcoin-db"
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
 
 [vars]
 # Local `wrangler dev` only — Cloudflare Pages git deployments do NOT use [vars].
@@ -12,6 +20,7 @@ AUTH_TRUST_HOST = "true"
 
 [build]
 command = "npm run build:worker"
+
 [observability]
 [observability.logs]
 enabled = true

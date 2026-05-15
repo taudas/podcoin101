@@ -8,12 +8,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const user = getUser(session.user.id)
+  const user = await getUser(session.user.id)
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
-  const services = getUserServices(session.user.id)
+  const services = await getUserServices(session.user.id)
   return NextResponse.json({ ...user, services })
 }
 
@@ -35,6 +35,6 @@ export async function PUT(req: NextRequest) {
   if (typeof body.bio === "string") data.bio = body.bio
   if (typeof body.neighborhood === "string") data.neighborhood = body.neighborhood
 
-  const updated = updateProfile(session.user.id, data)
+  const updated = await updateProfile(session.user.id, data)
   return NextResponse.json(updated)
 }

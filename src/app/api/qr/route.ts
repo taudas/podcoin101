@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = transfer(
+    const result = await transfer(
       session.user.id,
       payload.toUserId,
       payload.amount,

@@ -1,56 +1,49 @@
-import Database from "better-sqlite3"
-import path from "path"
+import type { D1Database } from "@cloudflare/workers-types"
+import { getCloudflareContext } from "@opennextjs/cloudflare"
 
-const DB_PATH = path.join(process.cwd(), "podcoin.db")
+let initialized = false
 
-let db: Database.Database | null = null
+async function getDb(): Promise<D1Database> {
+  const { env } = getCloudflareContext()
+  if (!initialized) {
+    await env.DB.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        image TEXT,
+        balance REAL NOT NULL DEFAULT 0,
+        credit_limit REAL NOT NULL DEFAULT 500,
+        neighborhood TEXT DEFAULT 'Alameda, CA',
+        bio TEXT DEFAULT '',
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+      );
 
-function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH)
-    db.pragma("journal_mode = WAL")
-    db.pragma("foreign_keys = ON")
-    initDb(db)
+      CREATE TABLE IF NOT EXISTS services (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        title TEXT NOT NULL,
+        description TEXT,
+        price_podcoin REAL NOT NULL,
+        category TEXT,
+        active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
+      CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_user_id TEXT REFERENCES users(id),
+        to_user_id TEXT REFERENCES users(id),
+        amount REAL NOT NULL,
+        note TEXT DEFAULT '',
+        type TEXT NOT NULL DEFAULT 'transfer',
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `)
+    initialized = true
   }
-  return db
-}
-
-function initDb(db: Database.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      image TEXT,
-      balance REAL NOT NULL DEFAULT 0,
-      credit_limit REAL NOT NULL DEFAULT 500,
-      neighborhood TEXT DEFAULT 'Alameda, CA',
-      bio TEXT DEFAULT '',
-      created_at TEXT DEFAULT (datetime('now')),
-      updated_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS services (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      title TEXT NOT NULL,
-      description TEXT,
-      price_podcoin REAL NOT NULL,
-      category TEXT,
-      active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      from_user_id TEXT REFERENCES users(id),
-      to_user_id TEXT REFERENCES users(id),
-      amount REAL NOT NULL,
-      note TEXT DEFAULT '',
-      type TEXT NOT NULL DEFAULT 'transfer',
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `)
+  return env.DB
 }
 
 export interface UserRecord {
@@ -87,107 +80,109 @@ export interface TransactionRecord {
   created_at: string
 }
 
-export function getOrCreateUser(user: {
+export async function getOrCreateUser(user: {
   id: string
   name: string
   email: string
   image: string | null
-}): UserRecord {
-  const database = getDb()
-  const existing = database
+}): Promise<UserRecord> {
+  const db = await getDb()
+  const existing = await db
     .prepare("SELECT * FROM users WHERE id = ?")
-    .get(user.id) as UserRecord | undefined
+    .bind(user.id)
+    .first() as UserRecord | undefined
 
   if (existing) {
-    database
-      .prepare(
-        "UPDATE users SET name = ?, image = ?, updated_at = datetime('now') WHERE id = ?"
-      )
-      .run(user.name, user.image, user.id)
+    await db
+      .prepare("UPDATE users SET name = ?, image = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(user.name, user.image, user.id)
+      .run()
     return { ...existing, name: user.name, image: user.image }
   }
 
-  database
-    .prepare(
-      "INSERT INTO users (id, name, email, image) VALUES (?, ?, ?, ?)"
-    )
-    .run(user.id, user.name, user.email, user.image)
+  await db
+    .prepare("INSERT INTO users (id, name, email, image) VALUES (?, ?, ?, ?)")
+    .bind(user.id, user.name, user.email, user.image)
+    .run()
 
-  return database
+  return (await db
     .prepare("SELECT * FROM users WHERE id = ?")
-    .get(user.id) as UserRecord
+    .bind(user.id)
+    .first()) as UserRecord
 }
 
-export function getUser(id: string): UserRecord | undefined {
-  return getDb()
+export async function getUser(id: string): Promise<UserRecord | undefined> {
+  const db = await getDb()
+  return (await db
     .prepare("SELECT * FROM users WHERE id = ?")
-    .get(id) as UserRecord | undefined
+    .bind(id)
+    .first()) as UserRecord | undefined
 }
 
-export function getUserBalance(
+export async function getUserBalance(
   id: string
-): { balance: number; credit_limit: number } | undefined {
-  return getDb()
+): Promise<{ balance: number; credit_limit: number } | undefined> {
+  const db = await getDb()
+  return (await db
     .prepare("SELECT balance, credit_limit FROM users WHERE id = ?")
-    .get(id) as { balance: number; credit_limit: number } | undefined
+    .bind(id)
+    .first()) as { balance: number; credit_limit: number } | undefined
 }
 
-export function transfer(
+export async function transfer(
   fromId: string,
   toId: string,
   amount: number,
   note: string
-): { transaction: TransactionRecord; fromBalance: number; toBalance: number } {
-  const database = getDb()
+): Promise<{ transaction: TransactionRecord; fromBalance: number; toBalance: number }> {
+  const db = await getDb()
 
   if (amount <= 0) throw new Error("Amount must be greater than zero")
   if (fromId === toId) throw new Error("Cannot transfer to yourself")
 
-  const from = database
+  // Validate sender and recipient exist
+  const from = await db
     .prepare("SELECT balance, credit_limit FROM users WHERE id = ?")
-    .get(fromId) as { balance: number; credit_limit: number } | undefined
+    .bind(fromId)
+    .first() as { balance: number; credit_limit: number } | undefined
   if (!from) throw new Error("Sender not found")
 
-  const to = database
+  const to = await db
     .prepare("SELECT balance FROM users WHERE id = ?")
-    .get(toId) as { balance: number } | undefined
+    .bind(toId)
+    .first() as { balance: number } | undefined
   if (!to) throw new Error("Recipient not found")
 
+  // Check sufficient credit before the atomic batch (small TOCTOU window — acceptable for this app)
   if (from.balance - amount < -from.credit_limit) {
     throw new Error(
       `Insufficient credit. Your available credit is ₱${(from.balance + from.credit_limit).toFixed(2)}`
     )
   }
 
-  const doTransfer = database.transaction(() => {
-    database
-      .prepare("UPDATE users SET balance = balance - ? WHERE id = ?")
-      .run(amount, fromId)
-    database
-      .prepare("UPDATE users SET balance = balance + ? WHERE id = ?")
-      .run(amount, toId)
+  // Atomic batch: all statements succeed or fail together on SQL error
+  const batchResults = await db.batch([
+    db.prepare("UPDATE users SET balance = balance - ? WHERE id = ?").bind(amount, fromId),
+    db.prepare("UPDATE users SET balance = balance + ? WHERE id = ?").bind(amount, toId),
+    db.prepare("INSERT INTO transactions (from_user_id, to_user_id, amount, note, type) VALUES (?, ?, ?, ?, 'transfer')").bind(fromId, toId, amount, note),
+  ]) as { meta: { changes: number; last_row_id?: number } }[]
 
-    const result = database
-      .prepare(
-        "INSERT INTO transactions (from_user_id, to_user_id, amount, note, type) VALUES (?, ?, ?, ?, 'transfer')"
-      )
-      .run(fromId, toId, amount, note)
+  // Use the INSERT's last_row_id to retrieve the transaction (no guessing needed)
+  const transaction = (await db
+    .prepare("SELECT * FROM transactions WHERE id = ?")
+    .bind(batchResults[2].meta.last_row_id!)
+    .first()) as TransactionRecord
 
-    const transaction = database
-      .prepare("SELECT * FROM transactions WHERE id = ?")
-      .get(result.lastInsertRowid) as TransactionRecord
+  const fromUser = (await db
+    .prepare("SELECT balance FROM users WHERE id = ?")
+    .bind(fromId)
+    .first()) as { balance: number }
+  const toUser = (await db
+    .prepare("SELECT balance FROM users WHERE id = ?")
+    .bind(toId)
+    .first()) as { balance: number }
 
-    const fromUser = database
-      .prepare("SELECT balance FROM users WHERE id = ?")
-      .get(fromId) as { balance: number }
-    const toUser = database
-      .prepare("SELECT balance FROM users WHERE id = ?")
-      .get(toId) as { balance: number }
-
-    return { transaction, fromBalance: fromUser.balance, toBalance: toUser.balance }
-  })
-
-  return doTransfer()
+  return { transaction, fromBalance: fromUser.balance, toBalance: toUser.balance }
 }
 
 export interface TransactionWithNames extends TransactionRecord {
@@ -195,11 +190,12 @@ export interface TransactionWithNames extends TransactionRecord {
   to_name: string | null
 }
 
-export function getTransactions(
+export async function getTransactions(
   userId: string,
   limit = 50
-): TransactionWithNames[] {
-  return getDb()
+): Promise<TransactionWithNames[]> {
+  const db = await getDb()
+  const result = await db
     .prepare(
       `SELECT t.*, 
         fu.name as from_name, 
@@ -211,72 +207,82 @@ export function getTransactions(
        ORDER BY t.created_at DESC
        LIMIT ?`
     )
-    .all(userId, userId, limit) as TransactionWithNames[]
+    .bind(userId, userId, limit)
+    .all()
+
+  return result.results as unknown as TransactionWithNames[]
 }
 
 export interface UserWithServices extends UserRecord {
   services: ServiceRecord[]
 }
 
-export function getUsers(search?: string): UserWithServices[] {
-  const database = getDb()
+export async function getUsers(search?: string): Promise<UserWithServices[]> {
+  const db = await getDb()
   let users: UserRecord[]
 
   if (search && search.trim()) {
     const term = `%${search.trim()}%`
-    users = database
+    const result = await db
       .prepare(
         `SELECT DISTINCT u.* FROM users u
          LEFT JOIN services s ON s.user_id = u.id AND s.active = 1
          WHERE u.name LIKE ? OR u.neighborhood LIKE ? OR s.title LIKE ? OR s.category LIKE ?
          ORDER BY u.name`
       )
-      .all(term, term, term, term) as UserRecord[]
+      .bind(term, term, term, term)
+      .all()
+    users = result.results as unknown as UserRecord[]
   } else {
-    users = database
+    const result = await db
       .prepare("SELECT * FROM users ORDER BY name")
-      .all() as UserRecord[]
+      .all()
+    users = result.results as unknown as UserRecord[]
   }
 
-  return users.map((user) => ({
-    ...user,
-    services: database
-      .prepare("SELECT * FROM services WHERE user_id = ? AND active = 1 ORDER BY created_at DESC")
-      .all(user.id) as ServiceRecord[],
-  }))
+  return Promise.all(
+    users.map(async (user) => ({
+      ...user,
+      services: await getUserServices(user.id),
+    }))
+  )
 }
 
-export function getUserServices(userId: string): ServiceRecord[] {
-  return getDb()
-    .prepare("SELECT * FROM services WHERE user_id = ? ORDER BY created_at DESC")
-    .all(userId) as ServiceRecord[]
+export async function getUserServices(userId: string): Promise<ServiceRecord[]> {
+  const db = await getDb()
+  const result = await db
+    .prepare("SELECT * FROM services WHERE user_id = ? AND active = 1 ORDER BY created_at DESC")
+    .bind(userId)
+    .all()
+  return result.results as unknown as ServiceRecord[]
 }
 
-export function addService(
+export async function addService(
   userId: string,
   service: { title: string; description?: string; price_podcoin: number; category?: string }
-): ServiceRecord {
-  const database = getDb()
-  const result = database
-    .prepare(
-      "INSERT INTO services (user_id, title, description, price_podcoin, category) VALUES (?, ?, ?, ?, ?)"
-    )
-    .run(userId, service.title, service.description ?? null, service.price_podcoin, service.category ?? null)
+): Promise<ServiceRecord> {
+  const db = await getDb()
+  const result = await db
+    .prepare("INSERT INTO services (user_id, title, description, price_podcoin, category) VALUES (?, ?, ?, ?, ?)")
+    .bind(userId, service.title, service.description ?? null, service.price_podcoin, service.category ?? null)
+    .run()
 
-  return database
+  return (await db
     .prepare("SELECT * FROM services WHERE id = ?")
-    .get(result.lastInsertRowid) as ServiceRecord
+    .bind(result.meta.last_row_id)
+    .first()) as ServiceRecord
 }
 
-export function updateService(
+export async function updateService(
   id: number,
   userId: string,
   service: { title?: string; description?: string; price_podcoin?: number; category?: string; active?: number }
-): void {
-  const database = getDb()
-  const existing = database
+): Promise<void> {
+  const db = await getDb()
+  const existing = await db
     .prepare("SELECT * FROM services WHERE id = ? AND user_id = ?")
-    .get(id, userId)
+    .bind(id, userId)
+    .first()
   if (!existing) throw new Error("Service not found")
 
   const fields: string[] = []
@@ -290,22 +296,26 @@ export function updateService(
 
   if (fields.length === 0) return
   values.push(id, userId)
-  database.prepare(`UPDATE services SET ${fields.join(", ")} WHERE id = ? AND user_id = ?`).run(...values)
+  await db
+    .prepare(`UPDATE services SET ${fields.join(", ")} WHERE id = ? AND user_id = ?`)
+    .bind(...values as [unknown, ...unknown[]])
+    .run()
 }
 
-export function deleteService(id: number, userId: string): void {
-  const database = getDb()
-  const result = database
+export async function deleteService(id: number, userId: string): Promise<void> {
+  const db = await getDb()
+  const result = await db
     .prepare("DELETE FROM services WHERE id = ? AND user_id = ?")
-    .run(id, userId)
-  if (result.changes === 0) throw new Error("Service not found")
+    .bind(id, userId)
+    .run()
+  if ((result.meta?.changes ?? 0) === 0) throw new Error("Service not found")
 }
 
-export function updateProfile(
+export async function updateProfile(
   userId: string,
   data: { name?: string; bio?: string; neighborhood?: string }
-): UserRecord {
-  const database = getDb()
+): Promise<UserRecord> {
+  const db = await getDb()
   const fields: string[] = []
   const values: unknown[] = []
 
@@ -316,8 +326,14 @@ export function updateProfile(
   if (fields.length > 0) {
     fields.push("updated_at = datetime('now')")
     values.push(userId)
-    database.prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`).run(...values)
+    await db
+      .prepare(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`)
+      .bind(...values as [unknown, ...unknown[]])
+      .run()
   }
 
-  return database.prepare("SELECT * FROM users WHERE id = ?").get(userId) as UserRecord
+  return (await db
+    .prepare("SELECT * FROM users WHERE id = ?")
+    .bind(userId)
+    .first()) as UserRecord
 }

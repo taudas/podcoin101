@@ -11,6 +11,6 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get("search") ?? undefined
 
-  const users = getUsers(search)
+  const users = await getUsers(search)
   return NextResponse.json({ users })
 }

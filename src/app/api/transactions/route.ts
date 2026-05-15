@@ -8,6 +8,6 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const transactions = getTransactions(session.user.id, 50)
+  const transactions = await getTransactions(session.user.id, 50)
   return NextResponse.json({ transactions })
 }

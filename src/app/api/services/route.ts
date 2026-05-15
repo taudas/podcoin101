@@ -7,7 +7,7 @@ export async function GET() {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
-  const services = getUserServices(session.user.id)
+  const services = await getUserServices(session.user.id)
   return NextResponse.json({ services })
 }
 
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "price_podcoin must be a positive number" }, { status: 400 })
   }
 
-  const service = addService(session.user.id, {
+  const service = await addService(session.user.id, {
     title: body.title,
     description: typeof body.description === "string" ? body.description : undefined,
     price_podcoin: body.price_podcoin,
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    updateService(body.id, session.user.id, {
+    await updateService(body.id, session.user.id, {
       title: typeof body.title === "string" ? body.title : undefined,
       description: typeof body.description === "string" ? body.description : undefined,
       price_podcoin: typeof body.price_podcoin === "number" ? body.price_podcoin : undefined,
@@ -85,7 +85,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    deleteService(id, session.user.id)
+    await deleteService(id, session.user.id)
     return NextResponse.json({ success: true })
   } catch (err) {
     const message = err instanceof Error ? err.message : "Delete failed"

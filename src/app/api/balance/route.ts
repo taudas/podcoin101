@@ -8,7 +8,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const data = getUserBalance(session.user.id)
+  const data = await getUserBalance(session.user.id)
   if (!data) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
