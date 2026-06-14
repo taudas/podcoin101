@@ -2,11 +2,20 @@ import type { D1Database } from "@cloudflare/workers-types"
 import { getCloudflareContext } from "@opennextjs/cloudflare"
 
 let initialized = false
+let dbInstance: D1Database | null = null
 
-async function getDb(): Promise<D1Database> {
+export async function getDb(): Promise<D1Database> {
   const { env } = getCloudflareContext()
+
+  if (dbInstance) return dbInstance
+  
+  // OpenNext maps D1 database to DB environment variable
+  const db = env.DB as D1Database
+  if (!db) {
+    throw new Error("D1 Database not configured. Check env.DB is bound.")
+  }
   if (!initialized) {
-    await env.DB.exec(`
+    await db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -43,7 +52,8 @@ async function getDb(): Promise<D1Database> {
     `)
     initialized = true
   }
-  return env.DB
+  dbInstance = db
+  return db
 }
 
 export interface UserRecord {

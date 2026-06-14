@@ -112,9 +112,20 @@ Cloudflare Pages does **not** read `wrangler.toml` `[vars]` at runtime. Environm
 3. Also add the production callback URL to your **Google Cloud Console** → OAuth 2.0 credentials:
    `https://demo.podcoin.org/api/auth/callback/google`
 
+### Database Setup (D1)
+
+For production, the app uses Cloudflare D1 instead of `better-sqlite3`. You must bind a D1 database:
+
+1. Create a D1 database: `npx wrangler d1 create podcoin-db`
+2. Copy the database ID from the output
+3. In Cloudflare Dashboard → Pages Settings → Environment variables, add:
+   - `DB` — The D1 database ID (this is a binding, not a plain text variable)
+
+The database schema is auto-created on first access.
+
 ### Database Note
 
-For production, replace `better-sqlite3` with [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-compatible) by updating `src/lib/db.ts`.
+For local development, you can continue using `better-sqlite3`. For production (Cloudflare Pages), replace it with [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite-compatible) by updating `src/lib/db.ts`.
 
 ## License
 

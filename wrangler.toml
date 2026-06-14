@@ -8,6 +8,10 @@ assets = { directory = ".open-next/assets", binding = "ASSETS" }
 # D1 Database (serverless SQLite)
 # Create: npx wrangler d1 create podcoin-db
 # Then replace the database_id below with the one from the output
+#
+# IMPORTANT FOR CLOUDFLARE PAGES DEPLOYMENTS:
+# If deploying via git integration, you must bind the D1 database in Cloudflare Dashboard:
+#   Settings → Environment Variables → Add variable: DB = <database-id>
 [[d1_databases]]
 binding = "podcoin-db"
 database_name = "podcoin-db"
@@ -15,7 +19,7 @@ database_id = "a9c5093e-0c4f-4118-985e-fe77cc2896ec"
 
 [vars]
 # Local `wrangler dev` only — Cloudflare Pages git deployments do NOT use [vars].
-# Set these in Cloudflare Dashboard → Pages → Settings → Environment variables.
+# Set all env vars in Cloudflare Dashboard → Pages → Settings → Environment variables.
 AUTH_TRUST_HOST = "true"
 
 [build]
