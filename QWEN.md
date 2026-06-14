@@ -188,3 +188,34 @@ Production: https://demo.podcoin.org
 1. **TOCTOU window**: Balance checks happen before atomic batch (acceptable for this app's scale)
 2. **Local vs Production DB**: Uses better-sqlite3 locally; Cloudflare D1 in production
 3. **Dev Secret**: Default NextAuth secret should be replaced with `NEXTAUTH_SECRET` env var
+
+## Critical: Database Setup for Production Login to Work
+
+The login workflow will fail at `https://podcoin101.taudas6709.workers.dev/` if the D1 database is not properly bound.
+
+### Step 1: Create D1 Database (Run Locally)
+
+```bash
+npx wrangler d1 create podcoin-db
+```
+
+This outputs your database ID: `xxxx-xxxx-xxxx-xxxx`
+
+### Step 2: Bind in Cloudflare Dashboard
+
+1. Go to **Cloudflare Dashboard → Pages → podcoin101 → Settings → Environment variables**
+2. Click **Add variable**:
+   - Variable name: `DB`
+   - Value: `<your database ID from step 1>`
+   - Type: `Secret text`
+3. Also ensure these are set:
+   - `NEXTAUTH_SECRET` (generate with `openssl rand -base64 32`)
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `AUTH_TRUST_HOST = true`
+
+### Why This Is Required
+
+Cloudflare Pages git integration **does not read** `wrangler.toml` `[d1_databases]`. The binding MUST be configured in the Dashboard. The code expects `env.DB` as the D1 database instance.
+
+Without this binding, the `/api/db-health` endpoint will return: `{"status":"error","message":"D1 Database not configured."}`

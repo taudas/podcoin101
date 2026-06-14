@@ -119,7 +119,10 @@ For production, the app uses Cloudflare D1 instead of `better-sqlite3`. You must
 1. Create a D1 database: `npx wrangler d1 create podcoin-db`
 2. Copy the database ID from the output
 3. In Cloudflare Dashboard → Pages Settings → Environment variables, add:
-   - `DB` — The D1 database ID (this is a binding, not a plain text variable)
+   - **Variable name**: `DB` (critical: the binding name must be exactly "DB")
+   - **Value**: The D1 database ID
+
+**IMPORTANT**: Cloudflare Pages git integration does NOT read `wrangler.toml`. The DB binding must be configured in Cloudflare Dashboard → Environment variables.
 
 The database schema is auto-created on first access.
 
