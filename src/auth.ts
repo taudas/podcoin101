@@ -11,9 +11,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (!user.email || !account?.providerAccountId) return false
+      if (!user.email) return false
+      
+      // Use providerAccountId if available, otherwise fall back to email-based ID
+      const userId = account?.providerAccountId || `google:${user.email}`
+      
       await getOrCreateUser({
-        id: account.providerAccountId,
+        id: userId,
         name: user.name ?? user.email,
         email: user.email,
         image: user.image ?? null,

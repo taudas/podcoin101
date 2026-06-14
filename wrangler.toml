@@ -6,16 +6,12 @@ compatibility_flags = ["nodejs_compat"]
 assets = { directory = ".open-next/assets", binding = "ASSETS" }
 
 # D1 Database (serverless SQLite)
-# Create: npx wrangler d1 create podcoin-db
-# Then replace the database_id below with the one from the output
-#
-# IMPORTANT FOR CLOUDFLARE PAGES DEPLOYMENTS:
-# If deploying via git integration, you must bind the D1 database in Cloudflare Dashboard:
+# FOR LOCAL DEV ONLY: Create with "npx wrangler d1 create podcoin-db" and run "wrangler dev"
+# 
+# IMPORTANT FOR CLOUDFLARE PAGES GIT INTEGRATION:
+# The D1 database binding MUST be configured in Cloudflare Dashboard:
 #   Settings → Environment Variables → Add variable: DB = <database-id>
-[[d1_databases]]
-binding = "podcoin-db"
-database_name = "podcoin-db"
-database_id = "a9c5093e-0c4f-4118-985e-fe77cc2896ec"
+# The binding name must be "DB" (not "podcoin-db")
 
 [vars]
 # Local `wrangler dev` only — Cloudflare Pages git deployments do NOT use [vars].
